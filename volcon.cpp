@@ -178,7 +178,7 @@ int main( int argc, char** argv )
 		{
 			break;
 		}
-		Fl::check();
+		Fl::wait(1.0);
 		if ( ! wnd.shown() )
 			break;
 	}
