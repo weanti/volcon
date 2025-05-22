@@ -75,11 +75,12 @@ void add_controls( Fl_Group* group, node_list* list )
 {
 	group->begin();
 	int slider_count = 0;
-	int switch_count = 0;
+	int group_start = 0;
+	Fl_Check_Button* mute_checkbox = NULL;
 	while ( list )
 	{
 		desc_list* func = list->functions;
-		Fl_Box* group_label = new Fl_Box( FL_FLAT_BOX, 60, slider_count*60, group->w(), 20, list->node_name );
+		Fl_Box* group_label = new Fl_Box( FL_FLAT_BOX, 0, group_start*20, group->w()/2, 20, list->node_name );
 		group_label->align( FL_ALIGN_INSIDE | FL_ALIGN_LEFT );
 		while ( func )
 		{
@@ -87,26 +88,33 @@ void add_controls( Fl_Group* group, node_list* list )
 			{
 				case SIOCTL_NUM:
 					{
-						Fl_Hor_Value_Slider* slider = new Fl_Hor_Value_Slider( 60, slider_count*60+20, group->w()-80, 20 );
+						slider_count++;
+						Fl_Hor_Value_Slider* slider = new Fl_Hor_Value_Slider( 0, (group_start+slider_count)*20, group->w()-20, 20 );
 						slider->bounds( 0, func->desc.maxval );
 						slider->value( func->val );
 						slider->callback( slider_cb );
 						slider->argument( func->desc.addr );
-						slider_count++;
 					}
 					break;
 				case SIOCTL_SW:
-					Fl_Check_Button* checkbox = new Fl_Check_Button( 0, switch_count*60+20, 60, 20, func->desc.func );
-					checkbox->callback( checkbox_cb );
-					checkbox->argument( func->desc.addr );
-					checkbox->value( func->val );
-					switch_count++;
+					// Create only 1 mute switch for a group.
+					// Reason:
+					// The system exposes a mute switch for all controls, but it seems that seem to work for all controls in a group example: 2 controls are listed for output (left and right), 2 mute switches are listed, but either switch mutes left AND right.
+					if ( strstr( func->desc.func, "mute" ) && mute_checkbox == NULL )
+					{
+						mute_checkbox = new Fl_Check_Button( group->w()/2, group_start*20, 60, 20, func->desc.func );
+						mute_checkbox->callback( checkbox_cb );
+						mute_checkbox->argument( func->desc.addr );
+						mute_checkbox->value( func->val );
+					}
 					break;
 			}
 			func = func->next;
 		}
+		group_start += slider_count+1;
+		slider_count = 0;
 		list = list->next;
-		switch_count = slider_count = switch_count > slider_count ? switch_count : slider_count;
+		mute_checkbox = NULL;
 	}
 	group->end();
 }
@@ -146,7 +154,7 @@ int main( int argc, char** argv )
 		fprintf(stderr, "failed to open sound device\n");
 		exit(1);
 	}
-	Fl_Window wnd(320, 240);
+	Fl_Window wnd(320, 240, "Volume control");
 	Fl_Scroll hscroll(0, 0, 320, 240);
 	hscroll.type(Fl_Scroll::VERTICAL);
 	wnd.end();
