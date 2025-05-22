@@ -25,7 +25,7 @@ void add_controls( Fl_Group* group, node_list* list );
 void slider_cb( Fl_Widget* w, long arg );
 void checkbox_cb( Fl_Widget* w, long arg );
 // find a widget that contols the device with the given address
-Fl_Valuator* find_widget( Fl_Group* group, unsigned addr );
+Fl_Widget* find_widget( Fl_Group* group, unsigned addr );
 
 void ondesc( void* arg, struct sioctl_desc* desc, int val)
 {
@@ -64,10 +64,18 @@ void ondesc( void* arg, struct sioctl_desc* desc, int val)
 void onval( void* arg, unsigned int addr, unsigned int val )
 {
 	Fl_Group* group = reinterpret_cast<Fl_Group*>( arg );
-	Fl_Valuator* v = find_widget( group, addr );
-	if ( v )
+	Fl_Widget* w = find_widget( group, addr );
+	Fl_Button* b = dynamic_cast<Fl_Button*>(w);
+	if ( b && val != b->value() )
+	{
+		b->value( val );
+		return;
+	}
+	Fl_Valuator* v = dynamic_cast<Fl_Valuator*>(w);
+	if ( v && val != v->value() )
 	{
 		v->value( val );
+		return;
 	}
 }
 
@@ -119,14 +127,14 @@ void add_controls( Fl_Group* group, node_list* list )
 	group->end();
 }
 
-Fl_Valuator* find_widget( Fl_Group* group, unsigned int addr )
+Fl_Widget * find_widget( Fl_Group* group, unsigned int addr )
 {
 	for ( int i = 0; i < group->children(); i++ )
 	{
-		Fl_Valuator * v = dynamic_cast<Fl_Valuator*>(group->child( i ));
-		if ( v && v->argument() == addr )
+		Fl_Widget * w = dynamic_cast<Fl_Widget*>(group->child( i ));
+		if ( w && w->argument() == addr )
 		{
-			return v;
+			return w;
 		}
 	}
 	return NULL;
