@@ -17,6 +17,7 @@
 
 node_list* controls;
 sioctl_hdl* hdl;
+bool right_mouse_button;
 // ========== sndio handling ===
 void ondesc( void* arg, sioctl_desc* desc, int val);
 void onval( void* arg, unsigned int addr, unsigned int val );
@@ -26,6 +27,7 @@ void slider_cb( Fl_Widget* w, long arg );
 void checkbox_cb( Fl_Widget* w, long arg );
 // find a widget that contols the device with the given address
 Fl_Widget* find_widget( Fl_Group* group, unsigned addr );
+int event_dispatch( int event, Fl_Window* w );
 
 void ondesc( void* arg, struct sioctl_desc* desc, int val)
 {
@@ -66,13 +68,13 @@ void onval( void* arg, unsigned int addr, unsigned int val )
 	Fl_Group* group = reinterpret_cast<Fl_Group*>( arg );
 	Fl_Widget* w = find_widget( group, addr );
 	Fl_Button* b = dynamic_cast<Fl_Button*>(w);
-	if ( b && val != b->value() )
+	if ( b && ( val != b->value() ) )
 	{
 		b->value( val );
 		return;
 	}
 	Fl_Valuator* v = dynamic_cast<Fl_Valuator*>(w);
-	if ( v && val != v->value() )
+	if ( v && ( val != v->value() ) )
 	{
 		v->value( val );
 		return;
@@ -140,11 +142,54 @@ Fl_Widget * find_widget( Fl_Group* group, unsigned int addr )
 	return NULL;
 }
 
+int event_dispatch( int event, Fl_Window* w )
+{
+	switch( event )
+	{
+		case FL_MOVE:
+			right_mouse_button = Fl::event_button() == FL_RIGHT_MOUSE;
+			break;
+		default:
+			right_mouse_button = false;
+
+	}
+	return Fl::handle_( event, w );
+}
+
 void slider_cb( Fl_Widget* w, long arg )
 {
 	Fl_Hor_Value_Slider* slider = dynamic_cast<Fl_Hor_Value_Slider*>(w);
 	unsigned int addr = (unsigned int)arg;
-	sioctl_setval( hdl, addr, slider->value() );
+	if ( right_mouse_button )
+	{
+		// find the group of the changed control
+		node_list* n = controls;
+		for ( ; n != NULL; n = n->next )
+		{
+			desc_list* f = n->functions;
+			for ( ; f != NULL; f = f->next )
+			{
+				if ( f->desc.addr == addr )
+					break;
+			}
+			if ( f )
+				break;
+		}
+		if ( n )
+		{
+			for ( desc_list* f = n->functions; f != NULL; f = f->next )
+			{
+				if ( f->desc.type == SIOCTL_NUM )
+				{
+					sioctl_setval( hdl, f->desc.addr, slider->value() );
+				}
+			}
+		}
+	}
+	else
+	{
+		sioctl_setval( hdl, addr, slider->value() );
+	}
 }
 
 void checkbox_cb( Fl_Widget* w, long arg )
@@ -156,6 +201,7 @@ void checkbox_cb( Fl_Widget* w, long arg )
 
 int main( int argc, char** argv )
 {
+	right_mouse_button = false;
 	hdl = sioctl_open( SIO_DEVANY, SIOCTL_READ | SIOCTL_WRITE, 1 );
 	if ( ! hdl )
 	{
@@ -167,6 +213,7 @@ int main( int argc, char** argv )
 	hscroll.type(Fl_Scroll::VERTICAL);
 	wnd.end();
 	wnd.show(argc, argv);
+	Fl::event_dispatch( event_dispatch );
 	controls = NULL;
 	sioctl_ondesc(hdl, ondesc, &hscroll);
 	sioctl_onval(hdl, onval, &hscroll);
