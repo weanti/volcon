@@ -160,7 +160,12 @@ void slider_cb( Fl_Widget* w, long arg )
 {
 	Fl_Hor_Value_Slider* slider = dynamic_cast<Fl_Hor_Value_Slider*>(w);
 	unsigned int addr = (unsigned int)arg;
-	if ( right_mouse_button )
+	const bool independent_moving = right_mouse_button;
+	if ( independent_moving )
+	{
+		sioctl_setval( hdl, addr, slider->value() );
+	}
+	else
 	{
 		// find the group of the changed control
 		node_list* n = controls;
@@ -185,10 +190,6 @@ void slider_cb( Fl_Widget* w, long arg )
 				}
 			}
 		}
-	}
-	else
-	{
-		sioctl_setval( hdl, addr, slider->value() );
 	}
 }
 
