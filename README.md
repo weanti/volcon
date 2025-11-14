@@ -13,4 +13,4 @@ The UI is self explanatory, but one invisible feature is that if you grab the sl
 Install fltk 1.3 (may work with 1.4 as well) and type make. That's it. There is no install target or manual page.
 
 ### Issues, problems, ...
-The API exposes (in my case) 2 controls for input, but their role is not entirely clear. One is certainly changes volume, the other one seems to influence volume as well, but to a smaller degree. 
+The API exposes (in my case) 2 controls for input, but their role is not entirely clear. One certainly changes volume, the other one seems to influence volume as well, but to a smaller degree. 
